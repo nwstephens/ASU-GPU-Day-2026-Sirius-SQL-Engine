@@ -1,0 +1,333 @@
+ubuntu@brev-a1cn9m4pd:~$ sirius/build/release/duckdb
+
+DuckDB v1.5.1 (Variegata)
+
+Enter ".help" for usage hints.
+
+memory D .timer on
+
+memory D CREATE VIEW lineitem AS SELECT * FROM read_parquet('sirius/test_datasets/tpch_parquet_sf100/lineitem/*.parquet');
+Run Time (s): real 0.014 user 0.004360 sys 0.000758
+memory D CREATE VIEW customer AS SELECT * FROM read_parquet('sirius/test_datasets/tpch_parquet_sf100/customer/*.parquet');
+Run Time (s): real 0.010 user 0.001067 sys 0.000000
+memory D CREATE VIEW orders   AS SELECT * FROM read_parquet('sirius/test_datasets/tpch_parquet_sf100/orders/*.parquet');
+Run Time (s): real 0.010 user 0.001720 sys 0.000122
+memory D CREATE VIEW supplier AS SELECT * FROM read_parquet('sirius/test_datasets/tpch_parquet_sf100/supplier/*.parquet');
+Run Time (s): real 0.010 user 0.000207 sys 0.000562
+memory D CREATE VIEW partsupp AS SELECT * FROM read_parquet('sirius/test_datasets/tpch_parquet_sf100/partsupp/*.parquet');
+Run Time (s): real 0.010 user 0.001229 sys 0.000283
+memory D CREATE VIEW nation   AS SELECT * FROM read_parquet('sirius/test_datasets/tpch_parquet_sf100/nation/*.parquet');
+Run Time (s): real 0.010 user 0.000740 sys 0.000000
+memory D CREATE VIEW part     AS SELECT * FROM read_parquet('sirius/test_datasets/tpch_parquet_sf100/part/*.parquet');
+Run Time (s): real 0.010 user 0.001087 sys 0.000000
+memory D CREATE VIEW region   AS SELECT * FROM read_parquet('sirius/test_datasets/tpch_parquet_sf100/region/*.parquet');
+Run Time (s): real 0.009 user 0.000046 sys 0.000627
+
+memory D .tables
+
+ ────────────────────────────────────────────────────────── memory ────────────────────────────────────────────────────────── 
+ ─────────────────────────────────────────────────────────── main ─────────────────────────────────────────────────────────── 
+┌─────────────────────────┐┌─────────────────────────┐┌──────────────────────┐┌───────────────────────┐┌───────────────────────┐
+│        lineitem         ││         orders          ││       customer       ││       supplier        ││         part          │
+│                         ││                         ││                      ││                       ││                       │
+│ l_orderkey      bigint  ││ o_orderkey      bigint  ││ c_custkey    integer ││ s_suppkey     integer ││ p_partkey     integer │
+│ l_partkey       integer ││ o_custkey       integer ││ c_name       varchar ││ s_name        varchar ││ p_name        varchar │
+│ l_suppkey       integer ││ o_orderstatus   varchar ││ c_address    varchar ││ s_address     varchar ││ p_mfgr        varchar │
+│ l_linenumber    integer ││ o_totalprice    decimal ││ c_nationkey  integer ││ s_nationkey   integer ││ p_brand       varchar │
+│ l_quantity      decimal ││ o_orderdate     date    ││ c_phone      varchar ││ s_phone       varchar ││ p_type        varchar │
+│ l_extendedprice decimal ││ o_orderpriority varchar ││ c_acctbal    decimal ││ s_acctbal     decimal ││ p_size        integer │
+│ l_discount      decimal ││ o_clerk         varchar ││ c_mktsegment varchar ││ s_comment     varchar ││ p_container   varchar │
+│ l_tax           decimal ││ o_shippriority  integer ││ c_comment    varchar │└───────────────────────┘│ p_retailprice decimal │
+│ l_returnflag    varchar ││ o_comment       varchar │└──────────────────────┘┌───────────────────────┐│ p_comment     varchar │
+│ l_linestatus    varchar │└─────────────────────────┘┌──────────────────────┐│       partsupp        │└───────────────────────┘
+│ l_shipdate      date    │┌─────────────────────────┐│        nation        ││                       │
+│ l_commitdate    date    ││         region          ││                      ││ ps_partkey    integer │
+│ l_receiptdate   date    ││                         ││ n_nationkey  integer ││ ps_suppkey    integer │
+│ l_shipinstruct  varchar ││ r_regionkey     integer ││ n_name       varchar ││ ps_availqty   integer │
+│ l_shipmode      varchar ││ r_name          varchar ││ n_regionkey  integer ││ ps_supplycost decimal │
+│ l_comment       varchar ││ r_comment       varchar ││ n_comment    varchar ││ ps_comment    varchar │
+└─────────────────────────┘└─────────────────────────┘└──────────────────────┘└───────────────────────┘
+
+memory D select
+             nation,
+             o_year,
+             sum(amount) as sum_profit
+         from
+             (
+             select
+                 n.n_name as nation,
+                 extract(year from o.o_orderdate) as o_year,
+                 l.l_extendedprice * (1 - l.l_discount) - ps.ps_supplycost * l.l_quantity as amount
+             from
+                 part p,
+                 supplier s,
+                 lineitem l,
+                 partsupp ps,
+                 orders o,
+                 nation n
+             where
+                 s.s_suppkey = l.l_suppkey
+                 and ps.ps_suppkey = l.l_suppkey
+                 and ps.ps_partkey = l.l_partkey
+                 and p.p_partkey = l.l_partkey
+                 and o.o_orderkey = l.l_orderkey
+                 and s.s_nationkey = n.n_nationkey
+                 and p.p_name like '%yellow%'
+             ) as profit
+         group by
+                 nation,
+                 o_year
+         order by
+                 nation,
+                 o_year desc
+         limit 10;
+┌───────────┬────────┬─────────────────┐
+│  nation   │ o_year │   sum_profit    │
+│  varchar  │ int64  │  decimal(38,4)  │
+├───────────┼────────┼─────────────────┤
+│ ALGERIA   │   1998 │ 2746215452.9485 │
+│ ALGERIA   │   1997 │ 4706730030.5599 │
+│ ALGERIA   │   1996 │ 4728194321.4928 │
+│ ALGERIA   │   1995 │ 4690134490.4589 │
+│ ALGERIA   │   1994 │ 4695176071.2675 │
+│ ALGERIA   │   1993 │ 4673215815.9653 │
+│ ALGERIA   │   1992 │ 4721019475.3679 │
+│ ARGENTINA │   1998 │ 2723975432.5541 │
+│ ARGENTINA │   1997 │ 4638640728.1240 │
+│ ARGENTINA │   1996 │ 4657951098.6241 │
+└───────────┴────────┴─────────────────┘
+  10 rows                    3 columns
+Run Time (s): real 8.003 user 107.330818 sys 12.138402
+
+memory D CALL gpu_execution("
+         select
+             nation,
+             o_year,
+             sum(amount) as sum_profit
+         from
+             (
+             select
+                 n.n_name as nation,
+                 extract(year from o.o_orderdate) as o_year,
+                 l.l_extendedprice * (1 - l.l_discount) - ps.ps_supplycost * l.l_quantity as amount
+             from
+                 part p,
+                 supplier s,
+                 lineitem l,
+                 partsupp ps,
+                 orders o,
+                 nation n
+             where
+                 s.s_suppkey = l.l_suppkey
+                 and ps.ps_suppkey = l.l_suppkey
+                 and ps.ps_partkey = l.l_partkey
+                 and p.p_partkey = l.l_partkey
+                 and o.o_orderkey = l.l_orderkey
+                 and s.s_nationkey = n.n_nationkey
+                 and p.p_name like '%yellow%'
+             ) as profit
+         group by
+                 nation,
+                 o_year
+         order by
+                 nation,
+                 o_year desc
+         limit 10
+         ");
+┌───────────┬────────┬─────────────────┐
+│  nation   │ o_year │   sum_profit    │
+│  varchar  │ int64  │  decimal(38,4)  │
+├───────────┼────────┼─────────────────┤
+│ ALGERIA   │   1998 │ 2746215452.9485 │
+│ ALGERIA   │   1997 │ 4706730030.5599 │
+│ ALGERIA   │   1996 │ 4728194321.4928 │
+│ ALGERIA   │   1995 │ 4690134490.4589 │
+│ ALGERIA   │   1994 │ 4695176071.2675 │
+│ ALGERIA   │   1993 │ 4673215815.9653 │
+│ ALGERIA   │   1992 │ 4721019475.3679 │
+│ ARGENTINA │   1998 │ 2723975432.5541 │
+│ ARGENTINA │   1997 │ 4638640728.1240 │
+│ ARGENTINA │   1996 │ 4657951098.6241 │
+└───────────┴────────┴─────────────────┘
+  10 rows                    3 columns
+Run Time (s): real 2.081 user 7.939640 sys 2.030075
+
+memory D SELECT c_count,
+                count(*) AS custdist
+         FROM
+           (SELECT c_custkey,
+                   count(o_orderkey) AS c_count
+            FROM customer
+            LEFT OUTER JOIN orders ON c_custkey = o_custkey
+            AND o_comment NOT LIKE '%special%requests%'
+            GROUP BY c_custkey)
+         GROUP BY c_count
+         ORDER BY custdist DESC,
+                  c_count DESC;
+
+┌─────────┬──────────┐
+│ c_count │ custdist │
+│  int64  │  int64   │
+├─────────┼──────────┤
+│       0 │  5000183 │
+│      10 │   677063 │
+│       9 │   663581 │
+│      11 │   633489 │
+│       8 │   590905 │
+│      12 │   563161 │
+│      13 │   494077 │
+│      19 │   477022 │
+│      18 │   468778 │
+│      20 │   465511 │
+│       7 │   464075 │
+│      17 │   450593 │
+│      14 │   444860 │
+│      21 │   434755 │
+│      16 │   430766 │
+│      15 │   424596 │
+│      22 │   388464 │
+│      23 │   331043 │
+│       6 │   318884 │
+│      24 │   269722 │
+│       · │      ·   │
+│       · │      ·   │
+│       · │      ·   │
+│      28 │    77483 │
+│      29 │    51144 │
+│       3 │    34729 │
+│      30 │    32656 │
+│      31 │    19929 │
+│      32 │    11840 │
+│       2 │    10007 │
+│      33 │     6599 │
+│      34 │     3632 │
+│      35 │     1963 │
+│       1 │     1875 │
+│      36 │     1062 │
+│      37 │      538 │
+│      38 │      254 │
+│      39 │      122 │
+│      40 │       64 │
+│      41 │       25 │
+│      42 │       14 │
+│      43 │        7 │
+│      44 │        1 │
+└─────────┴──────────┘
+  45 rows  2 columns
+  (40 shown)         
+Run Time (s): real 6.115 user 88.186378 sys 3.954679
+
+memory D CALL gpu_execution("
+         SELECT c_count,
+                count(*) AS custdist
+         FROM
+           (SELECT c_custkey,
+                   count(o_orderkey) AS c_count
+            FROM customer
+            LEFT OUTER JOIN orders ON c_custkey = o_custkey
+            AND o_comment NOT LIKE '%special%requests%'
+            GROUP BY c_custkey)
+         GROUP BY c_count
+         ORDER BY custdist DESC,
+                  c_count DESC
+         ");
+
+┌─────────┬──────────┐
+│ c_count │ custdist │
+│  int64  │  int64   │
+├─────────┼──────────┤
+│       0 │  5000183 │
+│      10 │   677063 │
+│       9 │   663581 │
+│      11 │   633489 │
+│       8 │   590905 │
+│      12 │   563161 │
+│      13 │   494077 │
+│      19 │   477022 │
+│      18 │   468778 │
+│      20 │   465511 │
+│       7 │   464075 │
+│      17 │   450593 │
+│      14 │   444860 │
+│      21 │   434755 │
+│      16 │   430766 │
+│      15 │   424596 │
+│      22 │   388464 │
+│      23 │   331043 │
+│       6 │   318884 │
+│      24 │   269722 │
+│       · │      ·   │
+│       · │      ·   │
+│       · │      ·   │
+│      28 │    77483 │
+│      29 │    51144 │
+│       3 │    34729 │
+│      30 │    32656 │
+│      31 │    19929 │
+│      32 │    11840 │
+│       2 │    10007 │
+│      33 │     6599 │
+│      34 │     3632 │
+│      35 │     1963 │
+│       1 │     1875 │
+│      36 │     1062 │
+│      37 │      538 │
+│      38 │      254 │
+│      39 │      122 │
+│      40 │       64 │
+│      41 │       25 │
+│      42 │       14 │
+│      43 │        7 │
+│      44 │        1 │
+└─────────┴──────────┘
+  45 rows  2 columns
+  (40 shown)         
+Run Time (s): real 1.504 user 4.423511 sys 0.957351
+
+memory D SELECT
+             count(*) n,
+             l_returnflag return,
+             l_linestatus status,
+             sum(l_quantity) as sum_qty,
+             sum(l_extendedprice) as sum_base_price,
+             sum(l_extendedprice * (1 - l_discount)) as sum_disc_price
+         FROM lineitem
+         WHERE l_shipdate <= date '1998-09-02'
+         GROUP BY l_returnflag, l_linestatus
+         ORDER BY l_returnflag, l_linestatus;
+
+┌───────────┬─────────┬─────────┬───────────────┬───────────────────┬─────────────────────┐
+│     n     │ return  │ status  │    sum_qty    │  sum_base_price   │   sum_disc_price    │
+│   int64   │ varchar │ varchar │ decimal(38,2) │   decimal(38,2)   │    decimal(38,4)    │
+├───────────┼─────────┼─────────┼───────────────┼───────────────────┼─────────────────────┤
+│ 148047881 │ A       │ F       │ 3775127758.00 │  5660776097194.45 │  5377736398183.9374 │
+│   3864590 │ N       │ F       │   98553062.00 │   147771098385.98 │   140384965965.0348 │
+│ 291619617 │ N       │ O       │ 7436302976.00 │ 11150725681373.59 │ 10593195308234.8523 │
+│ 148067261 │ R       │ F       │ 3775724970.00 │  5661603032745.34 │  5378513563915.4097 │
+└───────────┴─────────┴─────────┴───────────────┴───────────────────┴─────────────────────┘
+Run Time (s): real 3.309 user 51.166101 sys 0.785878
+
+memory D CALL gpu_execution("
+         SELECT
+             count(*) n,
+             l_returnflag return,
+             l_linestatus status,
+             sum(l_quantity) as sum_qty,
+             sum(l_extendedprice) as sum_base_price,
+             sum(l_extendedprice * (1 - l_discount)) as sum_disc_price
+         FROM lineitem
+         WHERE l_shipdate <= date '1998-09-02'
+         GROUP BY l_returnflag, l_linestatus
+         ORDER BY l_returnflag, l_linestatus
+         ");
+
+┌───────────┬─────────┬─────────┬───────────────┬───────────────────┬─────────────────────┐
+│     n     │ return  │ status  │    sum_qty    │  sum_base_price   │   sum_disc_price    │
+│   int64   │ varchar │ varchar │ decimal(38,2) │   decimal(38,2)   │    decimal(38,4)    │
+├───────────┼─────────┼─────────┼───────────────┼───────────────────┼─────────────────────┤
+│ 148047881 │ A       │ F       │ 3775127758.00 │  5660776097194.45 │  5377736398183.9374 │
+│   3864590 │ N       │ F       │   98553062.00 │   147771098385.98 │   140384965965.0348 │
+│ 291619617 │ N       │ O       │ 7436302976.00 │ 11150725681373.59 │ 10593195308234.8523 │
+│ 148067261 │ R       │ F       │ 3775724970.00 │  5661603032745.34 │  5378513563915.4097 │
+└───────────┴─────────┴─────────┴───────────────┴───────────────────┴─────────────────────┘
+Run Time (s): real 2.561 user 4.318767 sys 1.119424
