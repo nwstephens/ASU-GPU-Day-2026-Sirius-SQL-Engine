@@ -1,3 +1,10 @@
+# CPU: 16 x Intel(R) Xeon(R) CPU @ 2.20GHz (64 GiB)
+# GPU: 1 x L4 (24 GiB)
+# GPU Driver Version: 580.126.09     
+# CUDA Version: 13.0
+# Storage: 2TB
+# Cost: GCP ($1.72/hr)
+
 # Install pixi
 curl -fsSL https://pixi.sh/install.sh | sh
 
