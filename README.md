@@ -10,7 +10,7 @@ Sirius plugs into existing databases such as DuckDB via the standard Substrait q
 2. [Queries](queries.md)
 3. [Results](results.txt)
 
-# GPU Day 2026
+# ASU GPU Day 2026
 
 GPU Day is an annual one-day expo hosted by ASU Research Computing to educate faculty, students, and staff on how to use graphic processing units (GPUs) on the Sol supercomputer. The intent is to inspire and motivate our research community to use Research Computing's supercomputing systems and to showcase the important applications of these powerful GPU resources. 
 
